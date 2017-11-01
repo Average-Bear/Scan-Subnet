@@ -9,10 +9,12 @@
     IP within desired subnet or, first three octets (i.e. 192.168.0, 192.168.0.122).
 
 .PARAMETER IPRangeStart
-    Starting IP address; default 0.
+    Starting IP address.
+    Default 0.
 
 .PARAMETER IPRangeEnd
-    Ending IP address; default 255.
+    Ending IP address.
+    Default 255.
 
 .NOTES
     Author: JBear
@@ -22,13 +24,16 @@
 param(
 
     [Parameter(Mandatory=$true,HelpMessage="Enter an IP within desired subnet or, first three octets (i.e. 192.168.0, 192.168.0.122)")]
+    [ValidateNotNullOrEmpty()] 
     [String]$SubnetIP,
 
-    [Parameter(ValueFromPipeline=$true,HelpMessage="Enter starting IP range; fourth octet")]
-    [String]$IPRangeStart = "0",
+    [Parameter(ValueFromPipeline=$true,HelpMessage="Enter starting IP range (fourth octet)")]
+    [ValidateRange(0,255)] 
+    [Int]$IPRangeStart = "0",
 
-    [Parameter(ValueFromPipeline=$true,HelpMessage="Enter ending IP range; fourth octet")]
-    [String]$IPRangeEnd = "255"
+    [Parameter(ValueFromPipeline=$true,HelpMessage="Enter ending IP range (fourth octet)")]
+    [ValidateRange(0,255)] 
+    [Int]$IPRangeEnd = "255"
 )
 
 $i=0
