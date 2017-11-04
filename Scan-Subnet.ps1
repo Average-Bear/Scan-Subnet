@@ -106,4 +106,4 @@ function Scan-IPRange {
 }
 
 #Call function 
-Scan-IPRange | Receive-Job -Wait | Sort IP | Select IP, Hostname, FQDN  
+Scan-IPRange | Receive-Job -Wait -AutoRemoveJob | Select IP, Hostname, FQDN  
