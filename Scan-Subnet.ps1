@@ -1,4 +1,4 @@
- <#
+  <#
 .SYNOPSIS
     Detect all available hosts within a given subnet.
 
@@ -25,7 +25,7 @@ param(
 
     [Parameter(Mandatory=$true,HelpMessage="Enter an IP within desired subnet or, first three octets (i.e. 192.168.0, 192.168.0.122)")]
     [ValidateNotNullOrEmpty()] 
-    [String]$SubnetIP,
+    [String[]]$SubnetIP,
 
     [Parameter(ValueFromPipeline=$true,HelpMessage="Enter starting IP range (fourth octet)")]
     [ValidateRange(0,255)] 
@@ -36,63 +36,76 @@ param(
     [Int]$IPRangeEnd = "255"
 )
 
-$i=0
-$j=0
+function Scan-IPRange {
 
-[String[]]$SplitIP = $SubnetIP.Split(".")
-[String]$OctetOne = $SplitIP[0]
-[String]$OctetTwo = $SplitIP[1]
-[String]$OctetThree = $SplitIP[2]
-[String]$Subnet = "$OctetOne.$OctetTwo.$OctetThree"
-$Range = $IPRangeStart..$IPRangeEnd 
+    foreach($Sub in $SubnetIP) {
 
-function Scan-IPRange { 
+        [String[]]$SplitIP = $Sub.Split(".")
+        [String]$OctetOne = $SplitIP[0]
+        [String]$OctetTwo = $SplitIP[1]
+        [String]$OctetThree = $SplitIP[2]
+        [String]$Subnet = "$OctetOne.$OctetTwo.$OctetThree"
+        $Range = $IPRangeStart..$IPRangeEnd 
 
-    foreach($R in $Range) {
+        Start-Job { param($Subnet, $Range)
 
-        Write-Progress -Activity "Scanning IP Range ($IPRangeStart - $IPRangeEnd)..." -Status ("Percent Complete:" + "{0:N0}" -f ((($i++) / $Range.count) * 100) + "%") -CurrentOperation "Processing $("$Subnet.$R")..." -PercentComplete ((($j++) / $Range.count) * 100)
+            foreach($R in $Range) {
 
-        Start-Job { param($IP, $Subnet, $R)
+                Start-Job { param( $Subnet, $R)
 
-            $IP = "$Subnet.$R"
-            $DNS = @(
+                    $IP = "$Subnet.$R"
+                    $DNS = @(
 
-                Try {
+                        Try {
              
-                    [Net.Dns]::GetHostEntry($IP) 
-                }
+                            [Net.Dns]::GetHostEntry($IP) 
+                        }
 
-                Catch {
+                        Catch {
             
-                    $null
-                }
-            )
+                            $null
+                        }
+                    )
 
-            if($DNS) {
+                    if($DNS) {
 
-                $Hostname = @(
+                        $Hostname = @(
          
-                    if($DNS.HostName) {
+                            if($DNS.HostName) {
                 
-                        $DNS.HostName
-                    }
+                                $DNS.HostName
+                            }
                                           
-                    elseif(!($DNS.HostName)) {
+                            elseif(!($DNS.HostName)) {
                 
-                        $IP
-                    }             
-                )          
+                                $IP
+                            }             
+                        )          
 
-                [PSCustomObject] @{
+                        [PSCustomObject] @{
                     
-                    IP="$IP"
-                    Hostname="$Hostname".Split(".")[0]
-                    FQDN="$Hostname"
-                }         
-            }          
-        } -ArgumentList $IP, $Subnet, $R
+                            IP="$IP"
+                            Hostname="$Hostname".Split(".")[0]
+                            FQDN="$Hostname"
+                        }         
+                    }          
+                } -ArgumentList $Subnet, $R
+            }
+        } -ArgumentList $Subnet, $Range
     }
+
+    $Jobs = Get-Job | Where { $_.State -eq "Running"}
+    $Total = $Jobs.Count
+    $Running = $Jobs.Count
+
+    While($Running -gt 0) {
+    
+        Write-Progress -Activity "Scanning IP Ranges (Awaiting Results: $(($Running - $Total) * -1))..." -Status ("Percent Complete:" + "{0:N0}" -f (($Running / $Total) * 100) + "%") -PercentComplete (($Running / $Total) * 100)
+
+        $Running = (Get-Job | Where { $_.State -eq "Running"}).Count
+    }
+
 }
 
 #Call function 
-Scan-IPRange | Receive-Job -Wait | Sort IP | Select IP, Hostname, FQDN 
+Scan-IPRange | Receive-Job -Wait | Sort IP | Select IP, Hostname, FQDN  
