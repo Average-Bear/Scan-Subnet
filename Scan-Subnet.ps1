@@ -51,45 +51,42 @@ function Scan-IPRange {
 
             foreach($R in $Range) {
 
-                Start-Job { param( $Subnet, $R)
+                $IP = "$Subnet.$R"
+                $DNS = @(
 
-                    $IP = "$Subnet.$R"
-                    $DNS = @(
-
-                        Try {
+                    Try {
              
-                            [Net.Dns]::GetHostEntry($IP) 
-                        }
+                        [Net.Dns]::GetHostEntry($IP) 
+                    }
 
-                        Catch {
+                    Catch {
             
-                            $null
-                        }
-                    )
+                        $null
+                    }
+                )
 
-                    if($DNS) {
+                if($DNS) {
 
-                        $Hostname = @(
+                    $Hostname = @(
          
-                            if($DNS.HostName) {
+                        if($DNS.HostName) {
                 
-                                $DNS.HostName
-                            }
+                            $DNS.HostName
+                        }
                                           
-                            elseif(!($DNS.HostName)) {
+                        elseif(!($DNS.HostName)) {
                 
-                                $IP
-                            }             
-                        )          
+                            $IP
+                        }             
+                    )          
 
-                        [PSCustomObject] @{
+                    [PSCustomObject] @{
                     
-                            IP="$IP"
-                            Hostname="$Hostname".Split(".")[0]
-                            FQDN="$Hostname"
-                        }         
-                    }          
-                } -ArgumentList $Subnet, $R
+                        IP="$IP"
+                        Hostname="$Hostname".Split(".")[0]
+                        FQDN="$Hostname"
+                    }         
+                }          
             }
         } -ArgumentList $Subnet, $Range
     }
@@ -100,9 +97,10 @@ function Scan-IPRange {
 
     While($Running -gt 0) {
     
-        Write-Progress -Activity "Scanning IP Ranges (Awaiting Results: $(($Running - $Total) * -1))..." -Status ("Percent Complete:" + "{0:N0}" -f (($Running / $Total) * 100) + "%") -PercentComplete (($Running / $Total) * 100)
+        Write-Progress -Activity "Scanning IP Ranges (Awaiting Results: $(($Total - $Completed)))..." -Status ("Percent Complete:" + "{0:N0}" -f ((($Total - $Running) / $Total) * 100) + "%") -PercentComplete ((($Total - $Running) / $Total) * 100) -ErrorAction SilentlyContinue
 
         $Running = (Get-Job | Where { $_.State -eq "Running"}).Count
+        $Completed = (Get-Job | Where { $_.State -eq "Completed"}).Count
     }
 
 }
