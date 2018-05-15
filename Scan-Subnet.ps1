@@ -97,10 +97,9 @@ function Scan-IPRange {
 
     While($Running -gt 0) {
     
-        Write-Progress -Activity "Scanning IP Ranges (Awaiting Results: $(($Total - $Completed)))..." -Status ("Percent Complete:" + "{0:N0}" -f ((($Total - $Running) / $Total) * 100) + "%") -PercentComplete ((($Total - $Running) / $Total) * 100) -ErrorAction SilentlyContinue
+        Write-Progress -Activity "Scanning IP Ranges (Awaiting Results: $(($Running)))..." -Status ("Percent Complete:" + "{0:N0}" -f ((($Total - $Running) / $Total) * 100) + "%") -PercentComplete ((($Total - $Running) / $Total) * 100) -ErrorAction SilentlyContinue
 
         $Running = (Get-Job | Where { $_.State -eq "Running"}).Count
-        $Completed = (Get-Job | Where { $_.State -eq "Completed"}).Count
     }
 
 }
